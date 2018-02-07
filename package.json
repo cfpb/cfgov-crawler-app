@@ -1,0 +1,19 @@
+{
+  "name": "cfpb-site-crawler",
+  "version": "1.0.0",
+  "description": "A customized site-crawler for consumerfinance.gov",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "github": "^13.1.0",
+    "googleapis": "^25.0.0",
+    "is-url": "^1.2.2",
+    "json-beautify": "^1.0.1",
+    "md5": "^2.2.1",
+    "simplecrawler": "^1.1.6"
+  }
+}
