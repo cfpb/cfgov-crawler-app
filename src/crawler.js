@@ -4,6 +4,26 @@ const fs = require( 'fs' );
 const SimpleCrawler = require( 'simplecrawler' );
 const queue = SimpleCrawler.queue;
 const md5 = require( 'md5' );
+const cheerio = require( 'cheerio' );
+
+/**
+ * Find content links, ignoring mega-menu items.
+ * @param {object} $ A cheerio object of the HTML response
+ */
+function _findContentLinks( $ ) {
+  var links = [];
+  var $body = $( 'body' );
+  $body.find( '.o-header' ).remove();
+  $body.find( '.o-footer' ).remove();
+  $body.find( 'a' ).each( ( i, ele ) => {
+    var href = $( ele ).attr( 'href' );
+    if ( typeof( href ) !== 'undefined' ) {
+      links.push( href );
+    } ;
+  } );
+
+  return links;
+}
 
 /**
  * Find atomic components.
@@ -41,10 +61,12 @@ function _findAtomicComponents( url, responseBuffer ) {
  * @returns {boolean} True if page has WordPress content, false otherwise.
  */
 function _hasWordPressContent( url, responseBuffer ) {
-  const SEARCH = /<link rel=[\"']stylesheet[\"'] [^>]+wp-(?:content|includes)/g;
-  const pageHMTL = responseBuffer.toString();
+  // const SEARCH = /<link rel=[\"']stylesheet[\"'] [^>]+wp-(?:content|includes)/g;
+  // const pageHMTL = responseBuffer.toString();
 
-  return SEARCH.test( pageHMTL ) ;
+  // return SEARCH.test( pageHMTL ) ;
+  return responseBuffer.indexOf( 'wp-content' ) > -1;
+
 };
 
 /**
@@ -66,13 +88,23 @@ function _addSiteIndexEvents( crawler ) {
     const stateData = queueItem.stateData;
     const contentType = ( stateData && stateData.contentType ) || '';
     const url = queueItem.url;
+    var $ = cheerio.load( responseBuffer );
 
     if ( contentType.indexOf( 'text/html' ) > -1
          && queueItem.host === crawler.host ) {
+
+      // Find Atomic Components
       let components = _findAtomicComponents( url, responseBuffer );
       _addToQueueItem( queueItem, components );
+
+      // Find Wordpress Content
       queueItem.hasWordPressContent =
         _hasWordPressContent( url, responseBuffer );
+
+      // Find all links in content
+      queueItem.contentLinks = _findContentLinks( $ );
+
+      // Add the page hash
       queueItem.pageHash = _getPageHash( url, responseBuffer );
     }
 
@@ -85,18 +117,12 @@ function _addSiteIndexEvents( crawler ) {
     }
   } );
 
-  crawler.addDownloadCondition( ( queueItem, referrerQueueItem, callback ) => {
+  crawler.addFetchCondition( ( queueItem, referrerQueueItem, callback ) => {
     const downloadRegex =
     /\.(png|jpg|jpeg|gif|ico|css|js|csv|doc|docx|svg|pdf|xls|json|ttf|xml)$/i;
 
     callback( null, !queueItem.url.match( downloadRegex ) );
   } );
-
-  // crawler.addFetchCondition( ( queueItem, referrerQueueItem, callback ) => {
-  //   // We only ever want to move one step away from example.com, so if the
-  //   // referrer queue item reports a different domain, don't proceed
-  //   callback(null, referrerQueueItem.host === crawler.host);
-  // } );
 
   crawler.on( 'fetchclienterror', function( queueItem, error ) {
     console.log( 'fetch client error:' + error );
@@ -133,41 +159,42 @@ function _addToQueueItem( queueItem, components ) {
  * [fs.readFile]{@link https://nodejs.org/api/fs.html#fs_fs_readfile_file_options_callback}
  * @param {FetchQueue~defrostCallback} callback
  */
-queue.prototype.defrost = function defrost( fileData, callback ) {
-  var queue = this;
-  var defrostedQueue = [];
+// queue.prototype.defrost = function defrost( fileData, callback ) {
+//   var queue = this;
+//   var defrostedQueue = [];
 
-  if ( !fileData.toString( 'utf8' ).length ) {
-    return callback( new Error(
-      'Failed to defrost queue from zero-length JSON.'
-      )
-    );
-  }
+//   if ( !fileData.toString( 'utf8' ).length ) {
+//     return callback( new Error(
+//       'Failed to defrost queue from zero-length JSON.'
+//       )
+//     );
+//   }
 
-  try {
-    defrostedQueue = JSON.parse( fileData.toString( 'utf8' ) );
-  } catch ( error ) {
-    console.log( error )
-    return callback( error );
-  }
+//   try {
+    
+//     defrostedQueue = JSON.parse( fileData.toString( 'utf8' ) );
+//   } catch ( error ) {
+//     console.log( error )
+//     return callback( error );
+//   }
 
-  queue._oldestUnfetchedIndex = defrostedQueue.length - 1;
-  queue._scanIndex = {};
+//   queue._oldestUnfetchedIndex = defrostedQueue.length - 1;
+//   queue._scanIndex = {};
 
-  for ( var i = 0; i < defrostedQueue.length; i++ ) {
-    var queueItem = defrostedQueue[i];
-    queue.push( queueItem );
+//   for ( var i = 0; i < defrostedQueue.length; i++ ) {
+//     var queueItem = defrostedQueue[i];
+//     queue.push( queueItem );
 
-    if ( queueItem.status === 'queued' )  {
-      queue._oldestUnfetchedIndex =
-        Math.min( queue._oldestUnfetchedIndex, i );
-    }
+//     if ( queueItem.status === 'queued' )  {
+//       queue._oldestUnfetchedIndex =
+//         Math.min( queue._oldestUnfetchedIndex, i );
+//     }
 
-    queue._scanIndex[queueItem.url] = true;
-  }
+//     queue._scanIndex[queueItem.url] = true;
+//   }
 
-  callback( null, queue );
-};
+//   callback( null, queue );
+// };
 
 /**
  * Reset site crawler queue.
@@ -185,7 +212,7 @@ function create ( options={} ) {
 
   const crawlerDefaults = {
     host: 'www.consumerfinance.gov',
-    interval: 3800,
+    interval: 5000,
     maxConcurrency: 5,
     filterByDomain: true,
     parseHTMLComments: false,
