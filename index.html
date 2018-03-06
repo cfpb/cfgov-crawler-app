@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+  <html>
+    <head>
+      <script>window.$ = window.jQuery = require('jquery');</script>
+      <script src="app.js"></script>
+      <link rel="stylesheet" type="text/css" href="css/styles.css">
+      <meta charset="UTF-8">
+      <title>CFPB Site Viewer</title>
+    </head>
+    <body>
+      <h1 class="app-title">CFPB Crawler App</h1>
+      <div class="crawler-controls">
+        <h2>Crawler Controls</h2>
+        <div class="crawler-running-indicator">
+            <div class="rect1"></div>
+            <div class="rect2"></div>
+            <div class="rect3"></div>
+            <div class="rect4"></div>
+            <div class="rect5"></div>
+            <div id="running-cover" class="cover"></div>
+          </div>
+        <div class="crawler-controls_button-area">
+          <button id="crawler-start" disabled>Start Crawler</button>
+          <button id="crawler-stop" disabled>Stop Crawler</button>
+        </div>
+
+      </div>
+      <div class="crawler-stats">
+        <h2>Crawler Stats</h2>
+        <p id="stats-line"></p>
+      </div>
+    </body>
+  </html>

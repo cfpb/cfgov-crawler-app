@@ -1,0 +1,92 @@
+@import (less) "../node_modules/cf-core/src/cf-core.less";
+
+body {
+  margin: 10px 20px;
+}
+
+.app-title {
+  border-bottom: 2px solid @green; 
+}
+
+.crawler-controls {
+  background: @gray-10;
+  padding: 10px;
+  position: relative;
+
+  &_button-area {
+    button {
+      margin: 0px 10px 0px 0px;
+    }
+  }
+}
+
+.crawler-stats {
+  margin-top: 20px;
+}
+
+.crawler-running-indicator {
+  position: absolute;
+  top: 25px;
+  left: 400px;
+  width: 50px;
+  height: 40px;
+  text-align: left;
+  font-size: 10px;
+  float: right;
+
+  & > .cover {
+    background-color: @gray-10;
+    height: 100%;
+    width: 50px;
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    -webkit-animation: none;
+    animation: none;
+  }
+
+  & > div {
+    background-color: @green;
+    height: 100%;
+    width: 6px;
+    display: inline-block;
+    
+    -webkit-animation: sk-stretchdelay 1.2s infinite ease-in-out;
+    animation: sk-stretchdelay 1.2s infinite ease-in-out;
+  }
+
+  & .rect2 {
+    -webkit-animation-delay: -1.1s;
+    animation-delay: -1.1s;
+  }
+
+  & .rect3 {
+    -webkit-animation-delay: -1.0s;
+    animation-delay: -1.0s;
+  }
+
+  & .rect4 {
+    -webkit-animation-delay: -0.9s;
+    animation-delay: -0.9s;
+  }
+
+  & .rect5 {
+    -webkit-animation-delay: -0.8s;
+    animation-delay: -0.8s;
+  }
+
+  @-webkit-keyframes sk-stretchdelay {
+    0%, 40%, 100% { -webkit-transform: scaleY(0.4) }  
+    20% { -webkit-transform: scaleY(1.0) }
+  }
+
+  @keyframes sk-stretchdelay {
+    0%, 40%, 100% { 
+      transform: scaleY(0.4);
+      -webkit-transform: scaleY(0.4);
+    }  20% { 
+      transform: scaleY(1.0);
+      -webkit-transform: scaleY(1.0);
+    }
+  }
+}
