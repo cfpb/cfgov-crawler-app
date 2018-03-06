@@ -4,6 +4,43 @@ const fs = require( 'fs' );
 const SimpleCrawler = require( 'simplecrawler' );
 const queue = SimpleCrawler.queue;
 const md5 = require( 'md5' );
+const cheerio = require( 'cheerio' );
+const sqlite3 = require( 'sqlite3' ).verbose();
+
+let db = new sqlite3.Database( './database/cfpb-site.db', ( err ) => {
+  if ( !err ) {
+    console.log( 'Database connected!' );
+  }
+} );
+
+/**
+ * Update database
+ */
+function _updateDatabase( sql, params ) {
+  db.run( sql, params, ( err, rows ) => {
+    if ( err ) throw err;
+    console.log( 'Updated DB: ' + params[6] );
+  } );
+}
+
+/**
+ * Find content links, ignoring mega-menu items.
+ * @param {object} $ A cheerio object of the HTML response
+ */
+function _findContentLinks( $ ) {
+  var links = [];
+  var $body = $( 'body' );
+  $body.find( '.o-header' ).remove();
+  $body.find( '.o-footer' ).remove();
+  $body.find( 'a' ).each( ( i, ele ) => {
+    var href = $( ele ).attr( 'href' );
+    if ( typeof( href ) !== 'undefined' ) {
+      links.push( href );
+    } ;
+  } );
+
+  return links;
+}
 
 /**
  * Find atomic components.
@@ -41,10 +78,12 @@ function _findAtomicComponents( url, responseBuffer ) {
  * @returns {boolean} True if page has WordPress content, false otherwise.
  */
 function _hasWordPressContent( url, responseBuffer ) {
-  const SEARCH = /<link rel=[\"']stylesheet[\"'] [^>]+wp-(?:content|includes)/g;
-  const pageHMTL = responseBuffer.toString();
+  // const SEARCH = /<link rel=[\"']stylesheet[\"'] [^>]+wp-(?:content|includes)/g;
+  // const pageHMTL = responseBuffer.toString();
 
-  return SEARCH.test( pageHMTL ) ;
+  // return SEARCH.test( pageHMTL ) ;
+  return responseBuffer.indexOf( 'wp-content' ) > -1;
+
 };
 
 /**
@@ -57,123 +96,100 @@ function _getPageHash( url, responseBuffer ) {
   return md5( responseBuffer );
 };
 
+function _createSqlFromJson( json ) {
+  let itemMap = [ 'host', 'path', 'port', 'protocol', 'uriPath', 'url', 'depth',
+  'fetched', 'status', 'stateData', 'id', 'components', 'hasWordPressContent',
+  'contentLinks', 'pageHash' ];
+  var sql;
+  var params = [];
+
+  sql = 'INSERT OR REPLACE INTO cfpb(' + itemMap.join( ', ' );
+  sql += ' ) values( ';
+  sql += ( itemMap.map( function() { return '?'; } ) ).join( ', ' );
+  sql += ')'
+
+  itemMap.forEach( function( elem ) {
+    var value = json[elem];
+    if ( typeof value  === 'boolean' ) {
+      value = String( value );
+    } else if ( typeof value === 'object' ) {
+      value = JSON.stringify( value );
+    }
+    params.push( value );
+  } );
+
+  console.log( sql, params );
+
+  return {
+    sql: sql,
+    params: params
+  };
+
+}
+
+
 /**
  * Add site index.
  * @param {string} siteCrawler
  */
 function _addSiteIndexEvents( crawler ) {
-  crawler.on('fetchcomplete', function( queueItem, responseBuffer ) {
+  let itemMap = [ 'host', 'path', 'port', 'protocol', 'uriPath', 'url', 'depth',
+    'fetched', 'status', 'stateData', 'id', 'components', 'hasWordPressContent',
+    'contentLinks', 'pageHash' ];
+
+  crawler.on( 'fetchcomplete', function( queueItem, responseBuffer ) {
     const stateData = queueItem.stateData;
     const contentType = ( stateData && stateData.contentType ) || '';
     const url = queueItem.url;
+    var queueObj = queueItem;
+    var $ = cheerio.load( responseBuffer );
 
     if ( contentType.indexOf( 'text/html' ) > -1
          && queueItem.host === crawler.host ) {
-      let components = _findAtomicComponents( url, responseBuffer );
-      _addToQueueItem( queueItem, components );
-      queueItem.hasWordPressContent =
+
+      // Find Atomic Components
+      queueObj.components = _findAtomicComponents( url, responseBuffer );
+
+      // Find Wordpress Content
+      queueObj.hasWordPressContent =
         _hasWordPressContent( url, responseBuffer );
-      queueItem.pageHash = _getPageHash( url, responseBuffer );
+
+      // Find all links in content
+      queueObj.contentLinks = _findContentLinks( $ );
+
+      // Add the page hash
+      queueObj.pageHash = _getPageHash( url, responseBuffer );
+
+      var sqlData = _createSqlFromJson( queueObj );
+      _updateDatabase( sqlData.sql, sqlData.params );
+
     }
 
-    console.log( `Fetch complete: ${url}` );
-
-    if ( queueItem.id > 0 && queueItem.id % 500 === 0 ) {
-      fs.writeFile( 'site-index_' + new Date() + '.json',
-                    JSON.stringify( crawler.queue ),
-                    function(){} );
-    }
   } );
 
-  crawler.addDownloadCondition( ( queueItem, referrerQueueItem, callback ) => {
+  crawler.addFetchCondition( ( queueItem, referrerQueueItem, callback ) => {
     const downloadRegex =
     /\.(png|jpg|jpeg|gif|ico|css|js|csv|doc|docx|svg|pdf|xls|json|ttf|xml)$/i;
 
     callback( null, !queueItem.url.match( downloadRegex ) );
   } );
 
-  // crawler.addFetchCondition( ( queueItem, referrerQueueItem, callback ) => {
-  //   // We only ever want to move one step away from example.com, so if the
-  //   // referrer queue item reports a different domain, don't proceed
-  //   callback(null, referrerQueueItem.host === crawler.host);
-  // } );
-
   crawler.on( 'fetchclienterror', function( queueItem, error ) {
     console.log( 'fetch client error:' + error );
   } );
 
   crawler.on( 'complete', function() {
+    db.close( ( err ) => {
+      if ( err ) {
+        console.error( err.message );
+      }
+      console.log( 'Closed the database connection.' );
+    });
+
     console.log( 'Index successfully completed.' );
   } );
 
   return crawler;
-};
-
-/**
- * Add to the queueItem.
- * @param {string} queueItem
- * @param {string} components
- */
-function _addToQueueItem( queueItem, components ) {
-  const arrayMethod = 'push';
-  if ( Array.isArray( queueItem.components ) === false ) {
-    queueItem.components = [];
-  }
-  queueItem.components = queueItem.components.concat( components );
-
-  return queueItem;
-};
-
-/**
- * Import the queue from a frozen JSON file on disk.
- * Code copied from
- * https://github.com/simplecrawler/simplecrawler/blob/
- * 5f14fa4950cf9cd52bf77566e02df604fc1207d0/lib/queue.js#L451
- * @param {String} filename Filename passed directly to
- * [fs.readFile]{@link https://nodejs.org/api/fs.html#fs_fs_readfile_file_options_callback}
- * @param {FetchQueue~defrostCallback} callback
- */
-queue.prototype.defrost = function defrost( fileData, callback ) {
-  var queue = this;
-  var defrostedQueue = [];
-
-  if ( !fileData.toString( 'utf8' ).length ) {
-    return callback( new Error(
-      'Failed to defrost queue from zero-length JSON.'
-      )
-    );
-  }
-
-  try {
-    defrostedQueue = JSON.parse( fileData.toString( 'utf8' ) );
-  } catch ( error ) {
-    console.log( error )
-    return callback( error );
-  }
-
-  queue._oldestUnfetchedIndex = defrostedQueue.length - 1;
-  queue._scanIndex = {};
-
-  for ( var i = 0; i < defrostedQueue.length; i++ ) {
-    var queueItem = defrostedQueue[i];
-    queue.push( queueItem );
-
-    if ( queueItem.status === 'queued' )  {
-      queue._oldestUnfetchedIndex =
-        Math.min( queue._oldestUnfetchedIndex, i );
-    }
-
-    queue._scanIndex[queueItem.url] = true;
-  }
-
-  callback( null, queue );
-};
-
-/**
- * Reset site crawler queue.
- */
-SimpleCrawler.prototype.resetQueue = function resetQueue( ) {
-  this.queue = new queue();
 };
 
 /**
@@ -185,7 +201,7 @@ function create ( options={} ) {
 
   const crawlerDefaults = {
     host: 'www.consumerfinance.gov',
-    interval: 3800,
+    interval: 3000,
     maxConcurrency: 5,
     filterByDomain: true,
     parseHTMLComments: false,

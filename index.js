@@ -1,116 +1,58 @@
-'use strict';
+const {app, BrowserWindow, Menu} = require('electron')
+const path = require('path')
+const url = require('url')
 
-// Description
-//   A script to index some useful cf.gov things
-//
-// Configuration:
-//   CFPB_INDEXER_SECRET_KEY - Secret key that must be provided to start indexing
-//   CFPB_INDEXER_GOOGLE_CLIENT_EMAIL - Google API service account email address.
-//   CFPB_INDEXER_GOOGLE_PRIVATE_KEY - Google API sercice account private key.
-//   CFPB_INDEXER_DEFAULT_SITE - Default site to index.
-//   CFPB_INDEXER_GITHUB_TOKEN - GitHub account token.
-//   CFPB_INDEXER_GITHUB_URL - URL for the GitHub
-//
-// Commands:
-//   ????? - start indexing consumerfinance.gov.
-// 
-// Author:
-//   CFPB
+// Keep a global reference of the window object, if you don't, the window will
+// be closed automatically when the JavaScript object is garbage collected.
+let win
 
-const createCrawler = require( './src/crawler' ).create;
-const createGoogleSheets = require( './src/google-sheets' ).create;
-const GitHub = require( './src/github' );
-const isURL = require( 'is-url' );
-const SimpleCrawler = require( 'simplecrawler' );
-const fs = require( 'fs' );
-const mkdirRecursive = require( './src/utils/mkdirRecursive' );
 
-var beautify = require( 'json-beautify' );
 
-const CFPB_INDEX = 'cfpb-index';
-const CFPB_INDEX_REPORT_URL = 'cfpb-index-report-url';
+function createWindow () {
+  // Create the browser window.
+  win = new BrowserWindow({width: 1000, height: 700})
 
-const contentRegex = /\.(html|php|htm)$/i;
-var sitemap = '<?xml version="1.0" encoding="utf-8" standalone="yes" ?>';
-    sitemap += '\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+  // and load the index.html of the app.
+  win.loadURL(url.format({
+    pathname: path.join(__dirname, 'index.html'),
+    protocol: 'file:',
+    slashes: true
+  }))
 
-const crawlerOptions = {
-  URL: 'https://www.consumerfinance.gov/'
+  // Open the DevTools.
+  win.webContents.openDevTools()
+
+  // Emitted when the window is closed.
+  win.on('closed', () => {
+    // Dereference the window object, usually you would store windows
+    // in an array if your app supports multi windows, this is the time
+    // when you should delete the corresponding element.
+    win = null
+  })
 }
 
-var crawler = createCrawler( crawlerOptions );
+// This method will be called when Electron has finished
+// initialization and is ready to create browser windows.
+// Some APIs can only be used after this event occurs.
+app.on( 'ready', createWindow )
 
-/**
- * Initiates the environment for the crawler.
- */
-function init() {
-  mkdirRecursive( './cache' );
-}
+// Quit when all windows are closed.
+app.on( 'window-all-closed', () => {
+  // On macOS it is common for applications and their menu bar
+  // to stay active until the user quits explicitly with Cmd + Q
+  if ( process.platform !== 'darwin' ) {
+    app.quit()
+  }
+})
 
-// FOR DEVELOPMENT ONLY: 
-// Disable discovery during development
-crawler.discoverResources = false;
+app.on( 'activate', () => {
+  // On macOS it's common to re-create a window in the app when the
+  // dock icon is clicked and there are no other windows open.
+  if ( win === null ) {
+    createWindow()
+  }
+})
 
-// FOR DEVELOPMENT ONLY: Emit all events!
-var originalEmit = crawler.emit;
-crawler.emit = function(evtName, queueItem) {
-    crawler.queue.countItems({ fetched: true }, function(err, completeCount) {
-        if (err) {
-            throw err;
-        }
-
-        crawler.queue.getLength(function(err, length) {
-            if (err) {
-                throw err;
-            }
-
-            console.log("fetched %d of %d — %d open requests, %d open listeners",
-                completeCount,
-                length,
-                crawler._openRequests.length,
-                crawler._openListeners);
-        });
-    });
-
-    console.log(evtName, queueItem ? queueItem.url ? queueItem.url : queueItem : null);
-    originalEmit.apply(crawler, arguments);
-};
-
-
-// FOR DEVELOPMENT ONLY: 
-// Create a queue (for development purposes)
-crawler.queueURL( 'https://www.consumerfinance.gov/es/', undefined, true);
-crawler.queueURL( 'https://www.consumerfinance.gov/paying-for-college/', undefined, true );
-crawler.queueURL( 'https://www.consumerfinance.gov/paying-for-college/choose-a-student-loan/', undefined, true );
-crawler.queueURL( 'https://www.consumerfinance.gov/blog/', undefined, true);
-crawler.queueURL( 'https://www.consumerfinance.gov/data-research/', undefined, true);
-crawler.queueURL( 'https://www.consumerfinance.gov/ask-cfpb/', undefined, true);
-
-// on fetchcomplete, write the HTML content
-crawler.on( 'fetchcomplete', ( queueItem, responseBuffer, response ) => {
-  var path = './cache' + queueItem.uriPath;
+// In this file you can include the rest of your app's specific main process
+// code. You can also put them in separate files and require them here.
   
-  mkdirRecursive( path );
-  fs.writeFile( path + 'index.html', responseBuffer, 'ascii', ( err ) => {} );
-
-  // add to the sitemap
-  sitemap += '\n  <url>';
-  sitemap += '\n    <loc>' + queueItem.url + '</loc>';
-  sitemap += '\n  </url>'
-
-} );
-
-crawler.on( 'complete', () => {
-  sitemap += '\n</sitemap>';
-  mkdirRecursive( './sitemap' );
-  fs.writeFile( './sitemap/sitemap.xml', sitemap, 'ascii', ( err ) => { } );
-  
-} );
-
-// Initiate the stuff the crawler needs to work
-init();
-
-// Start the crawler
-crawler.start();
-
-

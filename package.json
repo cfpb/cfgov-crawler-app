@@ -4,16 +4,26 @@
   "description": "A customized site-crawler for consumerfinance.gov",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "postinstall": "install-app-deps"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "cf-core": "^4.6.3",
+    "cheerio": "^1.0.0-rc.2",
     "github": "^13.1.0",
     "googleapis": "^25.0.0",
+    "gulp": "^3.9.1",
+    "gulp-less": "^4.0.0",
     "is-url": "^1.2.2",
+    "jquery": "^3.3.1",
     "json-beautify": "^1.0.1",
     "md5": "^2.2.1",
-    "simplecrawler": "^1.1.6"
+    "simplecrawler": "^1.1.6",
+    "sqlite3": "^3.1.13"
+  },
+  "devDependencies": {
+    "electron-builder": "^20.2.1"
   }
 }
