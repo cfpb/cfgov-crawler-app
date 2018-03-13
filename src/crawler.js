@@ -167,9 +167,14 @@ function _addSiteIndexEvents( crawler ) {
 
   } );
 
+  // Don't fetch URLs that contain /external-site/
+  crawler.addFetchCondition( function( queueItem, referrerQueueItem, callback ) {
+    callback( null, !queueItem.path.match( /(\/external-site\/)/ ); );
+  });
+
   crawler.addFetchCondition( ( queueItem, referrerQueueItem, callback ) => {
     const downloadRegex =
-    /\.(png|jpg|jpeg|gif|ico|css|js|csv|doc|docx|svg|pdf|xls|json|ttf|xml)$/i;
+    /\.(png|jpg|jpeg|gif|ico|css|js|csv|doc|docx|svg|pdf|xls|json|ttf|xml|woff|eot|zip|wav)/i;
 
     callback( null, !queueItem.url.match( downloadRegex ) );
   } );
