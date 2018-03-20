@@ -6,7 +6,8 @@ const GitHub = require( './src/github' );
 const isURL = require( 'is-url' );
 const SimpleCrawler = require( 'simplecrawler' );
 const fs = require( 'fs' );
-const mkdirRecursive = require( './src/utils/mkdirRecursive' );
+const fileExists = require( './src/utils/file-exists' );
+const mkdirRecursive = require( './src/utils/mkdir-recursive' );
 const sqlite3 = require( 'sqlite3' ).verbose();
 
 var beautify = require( 'json-beautify' );
@@ -25,7 +26,7 @@ var queueCheck = 100;
  * Initiates the environment for the crawler.
  */
 function init() {
-  mkdirRecursive( './cache' );
+
 }
 
 var updateStats = {};
@@ -100,20 +101,23 @@ crawler.on( 'fetchcomplete', ( queueItem, responseBuffer, response ) => {
 init();
 
 // Defrost the existing queue
-crawler.queue.defrost( './mysavedqueue.json', () => {
-  crawler.queue.countItems( { fetched: true }, function( err, count ) {
-    if ( count > 0 ) {
-      queueCheck = count + 100;
-    }
-    crawler.queue.getLength(function(err, length) {
-      if (err) {
-          throw err;
+if ( fileExists( './mysavedqueue.json' ) ) {
+  crawler.queue.defrost( './mysavedqueue.json', () => {
+    crawler.queue.countItems( { fetched: true }, function( err, count ) {
+      if ( count > 0 ) {
+        queueCheck = count + 100;
       }
-      updateStats( count, length );
-    });
-    console.log( 'Starting fetch/queue' + count + ', ' + queueCheck );
-  } );
-} );
+      crawler.queue.getLength(function(err, length) {
+        if (err) {
+            throw err;
+        }
+        updateStats( count, length );
+      });
+      console.log( 'Starting fetch/queue' + count + ', ' + queueCheck );
+    } );
+  } );  
+}
+
 
 // Register Dashboard events/functions
 $( document ).ready( function() {

@@ -137,7 +137,7 @@ function _addSiteIndexEvents( crawler ) {
     'fetched', 'status', 'stateData', 'id', 'components', 'hasWordPressContent',
     'contentLinks', 'pageHash' ];
 
-  crawler.on( 'fetchcomplete', function( queueItem, responseBuffer ) {
+  crawler.on( 'fetchcomplete', function( queueItem, responseBuffer, response ) {
     const stateData = queueItem.stateData;
     const contentType = ( stateData && stateData.contentType ) || '';
     const url = queueItem.url;
@@ -147,29 +147,25 @@ function _addSiteIndexEvents( crawler ) {
     if ( contentType.indexOf( 'text/html' ) > -1
          && queueItem.host === crawler.host ) {
 
-      // Find Atomic Components
-      queueObj.components = _findAtomicComponents( url, responseBuffer );
-
-      // Find Wordpress Content
-      queueObj.hasWordPressContent =
-        _hasWordPressContent( url, responseBuffer );
-
-      // Find all links in content
-      queueObj.contentLinks = _findContentLinks( $ );
-
-      // Add the page hash
-      queueObj.pageHash = _getPageHash( url, responseBuffer );
-
       var sqlData = _createSqlFromJson( queueObj );
       _updateDatabase( sqlData.sql, sqlData.params );
 
     }
 
+    // Save a back of the queue JSON. Backups are good.
+    if ( queueItem.id > 0 && queueItem.id % 500 === 0 ) {
+      fs.writeFile( 'backup-mysavedqueue.json',
+                    JSON.stringify( crawler.queue ),
+                    function(){} );
+    }
+
+
   } );
 
   // Don't fetch URLs that contain /external-site/
   crawler.addFetchCondition( function( queueItem, referrerQueueItem, callback ) {
-    callback( null, !queueItem.path.match( /(\/external-site\/)/ ); );
+    const regex = /(\/external-site\/)/i;
+    callback( null, !queueItem.path.match( regex ) );
   });
 
   crawler.addFetchCondition( ( queueItem, referrerQueueItem, callback ) => {

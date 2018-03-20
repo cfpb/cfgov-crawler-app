@@ -1,6 +1,6 @@
 {
   "name": "cfpb-site-crawler",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "A customized site-crawler for consumerfinance.gov",
   "main": "index.js",
   "scripts": {
