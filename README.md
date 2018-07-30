@@ -2,7 +2,7 @@
 # Installing and Running the App
 
 1. `npm install` - This will install the requirements! Use node 8 or higher!
-2. `electron index.js` - This begins the electron app.
+2. `npm start` - This begins the electron app.
 3. You should now have an electron window that has two buttons: 'Start Crawler' and 'Stop Crawler'. This will allow you to control the crawler itself.
 
 # Usage
