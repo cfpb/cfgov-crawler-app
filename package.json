@@ -12,6 +12,7 @@
   "dependencies": {
     "cf-core": "4.6.3",
     "cheerio": "1.0.0-rc.2",
+    "electron": "^2.0.5",
     "github": "13.1.0",
     "googleapis": "25.0.0",
     "gulp": "^4.0.0",
