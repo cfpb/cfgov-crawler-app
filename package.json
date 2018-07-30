@@ -14,16 +14,16 @@
     "cheerio": "1.0.0-rc.2",
     "github": "13.1.0",
     "googleapis": "25.0.0",
-    "gulp": "3.9.1",
+    "gulp": "^4.0.0",
     "gulp-less": "4.0.0",
     "is-url": "1.2.2",
     "jquery": "3.3.1",
     "json-beautify": "1.0.1",
     "md5": "2.2.1",
     "simplecrawler": "1.1.6",
-    "sqlite3": "3.1.13"
+    "sqlite3": "^4.0.2"
   },
   "devDependencies": {
-    "electron-builder": "^20.2.1"
+    "electron-builder": "^20.26.0"
   }
 }
