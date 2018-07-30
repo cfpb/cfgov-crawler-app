@@ -21,7 +21,7 @@ const crawlerOptions = {
 }
 
 var crawler = createCrawler( crawlerOptions );
-var queueCheck = 100;
+var queueCheck = 10;
 
 /**
  * Initiates the environment for the crawler.
@@ -79,14 +79,14 @@ crawler.on( 'fetchcomplete', ( queueItem, responseBuffer, response ) => {
         throw err;
     }
 
-    // if ( count > queueCheck ) {
-    //   console.log( 'Time to freeze the queue ( fetched = ' + count + ', queueCheck = ' + queueCheck );
-    //   crawler.queue.freeze( 'mysavedqueue.json', () => {
+    if ( count > queueCheck ) {
+      console.log( 'Time to freeze the queue ( fetched = ' + count + ', queueCheck = ' + queueCheck );
+      crawler.queue.freeze( 'mysavedqueue.json', () => {
         
-    //   } );
-    //   queueCheck += 100;
-    //   console.log( 'New queueCheck: ' + queueCheck );
-    // }
+      } );
+      queueCheck += 100;
+      console.log( 'New queueCheck: ' + queueCheck );
+    }
 
     crawler.queue.getLength(function(err, length) {
         if (err) {
