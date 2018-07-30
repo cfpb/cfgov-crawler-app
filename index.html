@@ -22,11 +22,21 @@
         <div class="crawler-controls_button-area">
           <button id="crawler-start" disabled>Start Crawler</button>
           <button id="crawler-stop" disabled>Stop Crawler</button>
+
+          <div id="discovery-radio" style="display:none">
+            <h3>Discovery</h3>
+            <label for="discovery-toggle__on">
+              <input type="radio" id="discovery-toggle__on" name="discovery-toggle" value="yes" disabled>On
+            </label>
+            <label for="discovery-toggle__off" disabled>
+              <input type="radio" id="discovery-toggle__off" name="discovery-toggle" value="no" disabled>Off
+            </label>
+          </div>
         </div>
 
       </div>
       <div class="crawler-stats">
-        <h2>Crawler Stats</h2>
+        <h2>Crawler Status</h2>
         <p id="stats-line"></p>
       </div>
     </body>

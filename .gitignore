@@ -1,7 +1,6 @@
 # cfpb-site-crawler specific #
 ###################
-cache/
-sitemap/
+db/
 
 # Compiled source #
 ###################

@@ -6,6 +6,7 @@ const queue = SimpleCrawler.queue;
 const md5 = require( 'md5' );
 const cheerio = require( 'cheerio' );
 const sqlite3 = require( 'sqlite3' ).verbose();
+const sitemapCheck = require( './utils/sitemap-check' );
 
 let db = new sqlite3.Database( './database/cfpb-site.db', ( err ) => {
   if ( !err ) {
@@ -19,9 +20,19 @@ let db = new sqlite3.Database( './database/cfpb-site.db', ( err ) => {
 function _updateDatabase( sql, params ) {
   db.run( sql, params, ( err, rows ) => {
     if ( err ) throw err;
-    console.log( 'Updated DB: ' + params[6] );
+    // console.log( 'Updated DB: ' + params[6] );
   } );
 }
+
+// function _storeFullHtml( url, html, content ) {
+//   let sql = `INSERT OR REPLACE INTO fullhtml
+//               ( 'url', 'html', 'content' )
+//               VALUES ( ?, ?, ? )`;
+//   let params = [ url, html, content ];
+//   db.run( sql, params, ( err, rows ) => {
+//       if ( err ) throw err;
+//   } );
+// }
 
 /**
  * Find content links, ignoring mega-menu items.
@@ -40,6 +51,35 @@ function _findContentLinks( $ ) {
   } );
 
   return links;
+}
+
+function _findContentImages( $ ) {
+  var links = [];
+  var $body = $( 'body' );
+  $body.find( '.o-header' ).remove();
+  $body.find( '.o-footer' ).remove();
+  $body.find( 'img' ).each( ( i, ele ) => {
+    var href = $( ele ).attr( 'src' );
+    if ( typeof( href ) !== 'undefined' ) {
+      links.push( href );
+    } ;
+  } );
+
+  return links;
+}
+
+function _findMetaTags( $ ) {
+  let meta = [];
+  $( 'meta' ).each( ( i, val ) => {
+    let tag = '<meta';
+    for ( var prop in val.attribs ) {
+      tag += ' ' + prop + '="' + val.attribs[prop] +'"'
+    }
+    tag += '>';
+    meta.push( tag );
+  } );
+
+  return meta;
 }
 
 /**
@@ -99,7 +139,7 @@ function _getPageHash( url, responseBuffer ) {
 function _createSqlFromJson( json ) {
   let itemMap = [ 'host', 'path', 'port', 'protocol', 'uriPath', 'url', 'depth',
   'fetched', 'status', 'stateData', 'id', 'components', 'hasWordPressContent',
-  'contentLinks', 'pageHash' ];
+  'contentLinks', 'contentImages', 'metaTags', 'title', 'pageHash', 'sitemap' ];
   var sql;
   var params = [];
 
@@ -118,7 +158,7 @@ function _createSqlFromJson( json ) {
     params.push( value );
   } );
 
-  console.log( sql, params );
+  // console.log( sql, params );
 
   return {
     sql: sql,
@@ -135,20 +175,51 @@ function _createSqlFromJson( json ) {
 function _addSiteIndexEvents( crawler ) {
   let itemMap = [ 'host', 'path', 'port', 'protocol', 'uriPath', 'url', 'depth',
     'fetched', 'status', 'stateData', 'id', 'components', 'hasWordPressContent',
-    'contentLinks', 'pageHash' ];
+    'contentLinks', 'contentImages', 'metaTags', 'title', 'pageHash', 'sitemap' ];
 
   crawler.on( 'fetchcomplete', function( queueItem, responseBuffer, response ) {
     const stateData = queueItem.stateData;
     const contentType = ( stateData && stateData.contentType ) || '';
     const url = queueItem.url;
-    var queueObj = queueItem;
+    var queueObj = Object.assign( {}, queueItem );
     var $ = cheerio.load( responseBuffer );
 
     if ( contentType.indexOf( 'text/html' ) > -1
          && queueItem.host === crawler.host ) {
 
+      // Find Atomic Components
+      queueObj.components = _findAtomicComponents( url, responseBuffer );
+
+      // Find Wordpress Content
+      queueObj.hasWordPressContent =
+        _hasWordPressContent( url, responseBuffer );
+
+      // Find all links in content
+      queueObj.contentLinks = _findContentLinks( $ );
+
+      // Find all images in content
+      queueObj.contentImages = _findContentImages( $ );
+
+      // Find the meta tags
+      queueObj.metaTags = _findMetaTags( $ );
+
+      // Find the title
+      queueObj.title = $( 'title' ).text();
+
+      // Add the page hash
+      queueObj.pageHash = _getPageHash( url, responseBuffer );
+
+      // Add the sitemap boolean
+      queueObj.sitemap = sitemapCheck( queueItem.path ).toString();
+
       var sqlData = _createSqlFromJson( queueObj );
       _updateDatabase( sqlData.sql, sqlData.params );
+
+      // Store full HTML 
+      // var $content = $( 'body' );
+      // $content.find( '.o-header' ).remove();
+      // $content.find( '.o-footer' ).remove();
+      // _storeFullHtml( url, responseBuffer.toString(), $content );
 
     }
 

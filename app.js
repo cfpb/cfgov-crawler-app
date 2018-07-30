@@ -16,7 +16,8 @@ const CFPB_INDEX = 'cfpb-index';
 const CFPB_INDEX_REPORT_URL = 'cfpb-index-report-url';
 
 const crawlerOptions = {
-  URL: 'https://www.consumerfinance.gov/'
+  URL: 'https://www.consumerfinance.gov/',
+  deleteQueueFile: false
 }
 
 var crawler = createCrawler( crawlerOptions );
@@ -78,14 +79,14 @@ crawler.on( 'fetchcomplete', ( queueItem, responseBuffer, response ) => {
         throw err;
     }
 
-    if ( count > queueCheck ) {
-      console.log( 'Time to freeze the queue ( fetched = ' + count + ', queueCheck = ' + queueCheck );
-      crawler.queue.freeze( 'mysavedqueue.json', () => {
+    // if ( count > queueCheck ) {
+    //   console.log( 'Time to freeze the queue ( fetched = ' + count + ', queueCheck = ' + queueCheck );
+    //   crawler.queue.freeze( 'mysavedqueue.json', () => {
         
-      } );
-      queueCheck += 100;
-      console.log( 'New queueCheck: ' + queueCheck );
-    }
+    //   } );
+    //   queueCheck += 100;
+    //   console.log( 'New queueCheck: ' + queueCheck );
+    // }
 
     crawler.queue.getLength(function(err, length) {
         if (err) {
@@ -112,9 +113,15 @@ if ( fileExists( './mysavedqueue.json' ) ) {
             throw err;
         }
         updateStats( count, length );
+
+        if ( count === length ) {
+          $( '#stats-line' ).prepend( '<p><strong>It looks like you completed a crawl.</strong> To start a new one, hit the Start Crawler button now.</p>' );
+          crawlerOptions.deleteQueueFile = true;
+        }
       });
       console.log( 'Starting fetch/queue' + count + ', ' + queueCheck );
     } );
+
   } );  
 }
 
@@ -137,6 +144,11 @@ $( document ).ready( function() {
   }
   
   $start.click( function() {
+    if ( crawlerOptions.deleteQueueFile === true ) {
+      fs.renameSync( 'mysavedqueue.json', 'oldsavedqueue.json' );
+      updateStats( 0, 0 );
+      crawler.queue = new SimpleCrawler.queue();
+    }
     crawler.start();
     $cover.hide();
     $start.prop( 'disabled', true );
