@@ -1,7 +1,28 @@
 @import (less) "../node_modules/cf-core/src/cf-core.less";
+@import (less) "../node_modules/cf-notifications/src/cf-notifications.less";
 
 body {
   margin: 10px 20px;
+}
+
+.db-info {
+  .db-info_status {
+    span {
+      font-weight: bold;
+
+      &.success {
+        color: @green;
+      }
+
+      &.warning {
+        color: @gold;
+      }
+
+      &.error {
+        color: @red;
+      }
+    }
+  }
 }
 
 .app-title {

@@ -12,6 +12,7 @@
   "license": "ISC",
   "dependencies": {
     "cf-core": "^4.6.3",
+    "cf-notifications": "^2.0.2",
     "cheerio": "1.0.0-rc.2",
     "electron": "^2.0.5",
     "github": "13.1.0",

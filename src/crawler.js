@@ -3,275 +3,44 @@
 const fs = require( 'fs' );
 const SimpleCrawler = require( 'simplecrawler' );
 const queue = SimpleCrawler.queue;
-const md5 = require( 'md5' );
-const cheerio = require( 'cheerio' );
-const sqlite3 = require( 'sqlite3' ).verbose();
 const sitemapCheck = require( './utils/sitemap-check' );
-const getDatabaseConnection = require( './get-database-connection.js' );
-
-let db = {};
-
-// function _initializeDatabase() {
-//   if ( !fs.existsSync( './database' ) ) {
-//     fs.mkdir( './database', ( err ) => {
-//       if ( err ) {
-//         console.log( 'Error creating "./database" directory!');
-//         return false;
-//       }
-//     } );
-//   }
-
-//   db = new sqlite3.Database( './database/cfpb-site.db', ( err ) => {
-//     if ( !err ) {
-//       console.log( 'Database connected!' );
-//     }
-//   } );
-// }
-
-
-
+const pageModel = require( './models/page-model.js' );
+const databaseTools = require( './dispatchers/database-tools.js' );
+const fileExists = require( './utils/file-exists' );
+const updateStats = require( './views/crawler-status-view' ).updateStats;
 
 
 /**
- * Update database
+ * Initialize all the custom crawler settings
+ * @param {object} siteCrawler
  */
-function _updateDatabase( sql, params ) {
-  db.run( sql, params, ( err, rows ) => {
-    if ( err ) throw err;
-    // console.log( 'Updated DB: ' + params[6] );
-  } );
-}
+function _init( crawler ) {
 
-// function _storeFullHtml( url, html, content ) {
-//   let sql = `INSERT OR REPLACE INTO fullhtml
-//               ( 'url', 'html', 'content' )
-//               VALUES ( ?, ?, ? )`;
-//   let params = [ url, html, content ];
-//   db.run( sql, params, ( err, rows ) => {
-//       if ( err ) throw err;
-//   } );
-// }
+  _addPageIndexer( crawler );
+  _addFetchConditions( crawler );
+  _addFetchErrorHandler( crawler );
+  _addCompleteHandler( crawler );
 
-/**
- * Find content links, ignoring mega-menu items.
- * @param {object} $ A cheerio object of the HTML response
- */
-function _findContentLinks( $ ) {
-  var links = [];
-  var $body = $( 'body' );
-  $body.find( '.o-header' ).remove();
-  $body.find( '.o-footer' ).remove();
-  $body.find( 'a' ).each( ( i, ele ) => {
-    var href = $( ele ).attr( 'href' );
-    if ( typeof( href ) !== 'undefined' ) {
-      links.push( href );
-    } ;
-  } );
-
-  return links;
-}
-
-function _findContentImages( $ ) {
-  var links = [];
-  var $body = $( 'body' );
-  $body.find( '.o-header' ).remove();
-  $body.find( '.o-footer' ).remove();
-  $body.find( 'img' ).each( ( i, ele ) => {
-    var href = $( ele ).attr( 'src' );
-    if ( typeof( href ) !== 'undefined' ) {
-      links.push( href );
-    } ;
-  } );
-
-  return links;
-}
-
-function _findMetaTags( $ ) {
-  let meta = [];
-  $( 'meta' ).each( ( i, val ) => {
-    let tag = '<meta';
-    for ( var prop in val.attribs ) {
-      tag += ' ' + prop + '="' + val.attribs[prop] +'"'
-    }
-    tag += '>';
-    meta.push( tag );
-  } );
-
-  return meta;
 }
 
 /**
- * Find atomic components.
- * @param {string} url The URL of the page being indexed.
- * @param {string} responseBuffer The HTML buffer contatining page HTML.
+ * Add page indexer, which parses the fetched data and sends it to the database.
+ * @param {object} siteCrawler
  */
-function _findAtomicComponents( url, responseBuffer ) {
-  const SEARCH = /(?:(?:class=")|\s)((?:o|m|a)-[^_"__\s]*)/g;
-  const pageHMTL = responseBuffer.toString();
-  const prefixLookup = [
-    'a-',
-    'm-',
-    'o-'
-  ];
-  let matchType = undefined;
-  const components = [];
-  let match = undefined;
-  while ( ( match = SEARCH.exec( pageHMTL ) ) !== null ) {
-    match.forEach( function( match, groupIndex ) {
-      matchType = match.substr( 0, 2 );
-      if ( ( prefixLookup.indexOf( matchType ) > -1 )
-          && ( components.indexOf( match ) === -1 ) ) {
-        components.push( match );
-      }
-    } );
-  }
-
-  return components;
-};
-
-/**
- * Determine if page has WordPress content.
- * @param {string} url The URL of the page being indexed.
- * @param {string} responseBuffer The HTML buffer contatining page HTML.
- * @returns {boolean} True if page has WordPress content, false otherwise.
- */
-function _hasWordPressContent( url, responseBuffer ) {
-  // const SEARCH = /<link rel=[\"']stylesheet[\"'] [^>]+wp-(?:content|includes)/g;
-  // const pageHMTL = responseBuffer.toString();
-
-  // return SEARCH.test( pageHMTL ) ;
-  return responseBuffer.indexOf( 'wp-content' ) > -1;
-
-};
-
-/**
- * Storing page hash --- can be used to determine if page has changed.
- * @param {string} url The URL of the page being indexed.
- * @param {string} responseBuffer The HTML buffer contatining page HTML.
- * @returns {string} Hash of page contents.
- */
-function _getPageHash( url, responseBuffer ) {
-  return md5( responseBuffer );
-};
-
-function _formattedDate() {
-  let d = new Date();
-  function twoChars( string ) {
-    if ( string.length < 2 ) {
-      string = '0' + string;
-    }
-    return string;
-  }
-
-  let year = d.getFullYear();
-  let month = twoChars( ( d.getMonth() + 1 ).toString() );
-  let date = twoChars( ( d.getDate() ).toString() );
-
-  let hours = twoChars( d.getHours().toString() );
-  let minutes = twoChars( d.getMinutes().toString() );
-  let seconds = twoChars( d.getSeconds().toString() );
-
-  return year + '-' + month + '-' + date + ' ' + hours + ':' + minutes + ':' + seconds;
-}
-
-function _createSqlFromJson( json, itemMap ) {
-  var sql;
-  var params = [];
-
-  sql = 'INSERT OR REPLACE INTO cfpb(' + itemMap.join( ', ' );
-  sql += ' ) values( ';
-  sql += ( itemMap.map( function() { return '?'; } ) ).join( ', ' );
-  sql += ')'
-
-  itemMap.forEach( function( elem ) {
-    var value = json[elem];
-    if ( typeof value  === 'boolean' ) {
-      value = String( value );
-    } else if ( typeof value === 'object' ) {
-      value = JSON.stringify( value );
-    }
-    params.push( value );
-  } );
-
-  // console.log( sql, params );
-
-  return {
-    sql: sql,
-    params: params
-  };
-
-}
-
-
-/**
- * Add site index.
- * @param {string} siteCrawler
- */
-function _addSiteIndexEvents( crawler ) {
-  let itemMap = [ 'host', 'path', 'port', 'protocol', 'uriPath', 'url', 'depth',
-    'fetched', 'status', 'stateData', 'id', 'components', 'hasWordPressContent',
-    'contentLinks', 'contentImages', 'metaTags', 'title', 'pageHash', 'sitemap',
-    'timestamp' ];
-
+function _addPageIndexer( crawler ) {
   crawler.on( 'fetchcomplete', function( queueItem, responseBuffer, response ) {
     const stateData = queueItem.stateData;
     const contentType = ( stateData && stateData.contentType ) || '';
     const url = queueItem.url;
-    var queueObj = Object.assign( {}, queueItem );
-    var $ = cheerio.load( responseBuffer );
 
-    if ( contentType.indexOf( 'text/html' ) > -1
-         && queueItem.host === crawler.host ) {
-
-      // Find Atomic Components
-      queueObj.components = _findAtomicComponents( url, responseBuffer );
-
-      // Find Wordpress Content
-      queueObj.hasWordPressContent =
-        _hasWordPressContent( url, responseBuffer );
-
-      // Find all links in content
-      queueObj.contentLinks = _findContentLinks( $ );
-
-      // Find all images in content
-      queueObj.contentImages = _findContentImages( $ );
-
-      // Find the meta tags
-      queueObj.metaTags = _findMetaTags( $ );
-
-      // Find the title
-      queueObj.title = $( 'title' ).text();
-
-      // Add the page hash
-      queueObj.pageHash = _getPageHash( url, responseBuffer );
-
-      // Add the sitemap boolean
-      queueObj.sitemap = sitemapCheck( queueItem.path ).toString();
-
-      // Add a timestamp
-      queueObj.timestamp = _formattedDate();
-
-      var sqlData = _createSqlFromJson( queueObj, itemMap );
-      _updateDatabase( sqlData.sql, sqlData.params );
-
-      // Store full HTML 
-      // var $content = $( 'body' );
-      // $content.find( '.o-header' ).remove();
-      // $content.find( '.o-footer' ).remove();
-      // _storeFullHtml( url, responseBuffer.toString(), $content );
-
+    if ( contentType.indexOf( 'text/html' ) > -1 && queueItem.host === crawler.host ) {
+      let pageObj = pageModel.createPageObject( queueItem, responseBuffer );
+      databaseTools.updateFromPageObj( pageObj );
     }
-
-    // Save a back of the queue JSON. Backups are good.
-    if ( queueItem.id > 0 && queueItem.id % 500 === 0 ) {
-      fs.writeFile( 'backup-mysavedqueue.json',
-                    JSON.stringify( crawler.queue ),
-                    function(){} );
-    }
-
-
   } );
+}
 
+function _addFetchConditions( crawler ) {
   // Don't fetch URLs that contain /external-site/
   crawler.addFetchCondition( function( queueItem, referrerQueueItem, callback ) {
     const regex = /(\/external-site\/)/i;
@@ -284,11 +53,15 @@ function _addSiteIndexEvents( crawler ) {
 
     callback( null, !queueItem.url.match( downloadRegex ) );
   } );
+}
 
+function _addFetchErrorHandler( crawler ) {
   crawler.on( 'fetchclienterror', function( queueItem, error ) {
     console.log( 'fetch client error:' + error );
   } );
+}
 
+function _addCompleteHandler( crawler ) {
   crawler.on( 'complete', function() {
     db.close( ( err ) => {
       if ( err ) {
@@ -300,8 +73,34 @@ function _addSiteIndexEvents( crawler ) {
     console.log( 'Index successfully completed.' );
   } );
 
-  return crawler;
-};
+}
+
+function loadSavedQueue( crawler ) {
+  // Defrost the existing queue
+  if ( fileExists( './mysavedqueue.json' ) ) {
+    crawler.queue.defrost( './mysavedqueue.json', () => {
+      crawler.queue.countItems( { fetched: true }, function( err, count ) {
+        if ( count > 0 ) {
+          crawler.queueCheck = count + 100;
+        }
+        crawler.queue.getLength(function(err, length) {
+          if (err) {
+              throw err;
+          }
+          updateStats( count, length );
+
+          if ( count === length ) {
+            // TODO: Fix this line below
+            $( '#stats-line' ).prepend( '<p><strong>It looks like you completed a crawl.</strong> To start a new one, hit the Start Crawler button now.</p>' );
+            crawlerOptions.deleteQueueFile = true;
+          }
+        });
+        console.log( 'Starting fetch/queue' + count + ', ' + crawler.queueCheck );
+      } );
+
+    } );  
+  }
+}
 
 /**
  * Create site crawler.
@@ -309,34 +108,27 @@ function _addSiteIndexEvents( crawler ) {
  */
 function create ( options={} ) {
   const crawler = SimpleCrawler( options.URL );
+  const crawlerDefaults = {
+    URL: 'https://www.consumerfinance.gov/',
+    host: 'www.consumerfinance.gov',
+    interval: 3000,
+    maxConcurrency: 5,
+    filterByDomain: true,
+    parseHTMLComments: false,
+    parseScriptTags: false,
+    respectRobotsTxt: false
+  };
 
-  db = getDatabaseConnection()
-  .then(
-    function() {
-      console.log( 'Things went well' );
-      const crawlerDefaults = {
-        host: 'www.consumerfinance.gov',
-        interval: 3000,
-        maxConcurrency: 5,
-        filterByDomain: true,
-        parseHTMLComments: false,
-        parseScriptTags: false,
-        respectRobotsTxt: false
-      };
+  Object.assign( crawler, crawlerDefaults, options );
 
-      Object.assign( crawler, crawlerDefaults, options );
+  _init( crawler );
 
-      _addSiteIndexEvents( crawler );
+  crawler.queueCheck = 10;
 
-      return crawler
-    },
-    function() {
-      console.log( 'There was an error initializing the crawler.' );
+  return crawler
+}
 
-      return false;
-    }
-  )
-
+module.exports = {
+  create: create,
+  loadSavedQueue: loadSavedQueue
 };
-
-module.exports = { create };
