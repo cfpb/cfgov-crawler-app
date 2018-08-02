@@ -1,28 +1,53 @@
 @import (less) "../node_modules/cf-core/src/cf-core.less";
+@import (less) "../node_modules/cf-notifications/src/cf-notifications.less";
 
 body {
   margin: 10px 20px;
+}
+
+.db-info {
+  .db-info_status {
+    span {
+      font-weight: bold;
+
+      &.success {
+        color: @green;
+      }
+
+      &.warning {
+        color: @gold;
+      }
+
+      &.error {
+        color: @red;
+      }
+    }
+  }
 }
 
 .app-title {
   border-bottom: 2px solid @green; 
 }
 
-.crawler-controls {
-  background: @gray-10;
+.section {
   padding: 10px;
   position: relative;
+}
+
+.section + .section {
+  margin-top: 20px;
+}
+
+.crawler-controls {
+  background: @gray-10;
+
+  .section();
 
   &_button-area {
     button {
       margin: 0px 10px 0px 0px;
     }
   }
-}
-
-.crawler-stats {
-  margin-top: 20px;
-}
 
 .crawler-running-indicator {
   position: absolute;
@@ -90,3 +115,13 @@ body {
     }
   }
 }
+}
+
+.crawler-stats {
+  background-color: @pacific-20;
+}
+
+.db-info {
+  background-color: @teal-20; 
+}
+
