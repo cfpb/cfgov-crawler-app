@@ -115,7 +115,7 @@ if ( fileExists( './mysavedqueue.json' ) ) {
         updateStats( count, length );
 
         if ( count === length ) {
-          $( '#stats-line' ).prepend( '<p><strong>It looks like you completed a crawl.</strong> To start a new one, hit the Start Crawler button now.</p>' );
+          $( '#stats-line' ).prepend( '<p><strong>It looks like you previously completed a crawl.</strong> To start a new one, hit the Start Crawler button now.</p>' );
           crawlerOptions.deleteQueueFile = true;
         }
       });

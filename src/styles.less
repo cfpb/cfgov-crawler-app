@@ -8,21 +8,25 @@ body {
   border-bottom: 2px solid @green; 
 }
 
-.crawler-controls {
-  background: @gray-10;
+.section {
   padding: 10px;
   position: relative;
+}
+
+.section + .section {
+  margin-top: 20px;
+}
+
+.crawler-controls {
+  background: @gray-10;
+
+  .section();
 
   &_button-area {
     button {
       margin: 0px 10px 0px 0px;
     }
   }
-}
-
-.crawler-stats {
-  margin-top: 20px;
-}
 
 .crawler-running-indicator {
   position: absolute;
@@ -90,3 +94,13 @@ body {
     }
   }
 }
+}
+
+.crawler-stats {
+  background-color: @pacific-20;
+}
+
+.db-info {
+  background-color: @teal-20; 
+}
+

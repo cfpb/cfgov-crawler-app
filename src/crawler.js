@@ -7,12 +7,30 @@ const md5 = require( 'md5' );
 const cheerio = require( 'cheerio' );
 const sqlite3 = require( 'sqlite3' ).verbose();
 const sitemapCheck = require( './utils/sitemap-check' );
+const getDatabaseConnection = require( './get-database-connection.js' );
 
-let db = new sqlite3.Database( './database/cfpb-site.db', ( err ) => {
-  if ( !err ) {
-    console.log( 'Database connected!' );
-  }
-} );
+let db = {};
+
+// function _initializeDatabase() {
+//   if ( !fs.existsSync( './database' ) ) {
+//     fs.mkdir( './database', ( err ) => {
+//       if ( err ) {
+//         console.log( 'Error creating "./database" directory!');
+//         return false;
+//       }
+//     } );
+//   }
+
+//   db = new sqlite3.Database( './database/cfpb-site.db', ( err ) => {
+//     if ( !err ) {
+//       console.log( 'Database connected!' );
+//     }
+//   } );
+// }
+
+
+
+
 
 /**
  * Update database
@@ -136,10 +154,27 @@ function _getPageHash( url, responseBuffer ) {
   return md5( responseBuffer );
 };
 
-function _createSqlFromJson( json ) {
-  let itemMap = [ 'host', 'path', 'port', 'protocol', 'uriPath', 'url', 'depth',
-  'fetched', 'status', 'stateData', 'id', 'components', 'hasWordPressContent',
-  'contentLinks', 'contentImages', 'metaTags', 'title', 'pageHash', 'sitemap' ];
+function _formattedDate() {
+  let d = new Date();
+  function twoChars( string ) {
+    if ( string.length < 2 ) {
+      string = '0' + string;
+    }
+    return string;
+  }
+
+  let year = d.getFullYear();
+  let month = twoChars( ( d.getMonth() + 1 ).toString() );
+  let date = twoChars( ( d.getDate() ).toString() );
+
+  let hours = twoChars( d.getHours().toString() );
+  let minutes = twoChars( d.getMinutes().toString() );
+  let seconds = twoChars( d.getSeconds().toString() );
+
+  return year + '-' + month + '-' + date + ' ' + hours + ':' + minutes + ':' + seconds;
+}
+
+function _createSqlFromJson( json, itemMap ) {
   var sql;
   var params = [];
 
@@ -175,7 +210,8 @@ function _createSqlFromJson( json ) {
 function _addSiteIndexEvents( crawler ) {
   let itemMap = [ 'host', 'path', 'port', 'protocol', 'uriPath', 'url', 'depth',
     'fetched', 'status', 'stateData', 'id', 'components', 'hasWordPressContent',
-    'contentLinks', 'contentImages', 'metaTags', 'title', 'pageHash', 'sitemap' ];
+    'contentLinks', 'contentImages', 'metaTags', 'title', 'pageHash', 'sitemap',
+    'timestamp' ];
 
   crawler.on( 'fetchcomplete', function( queueItem, responseBuffer, response ) {
     const stateData = queueItem.stateData;
@@ -212,7 +248,10 @@ function _addSiteIndexEvents( crawler ) {
       // Add the sitemap boolean
       queueObj.sitemap = sitemapCheck( queueItem.path ).toString();
 
-      var sqlData = _createSqlFromJson( queueObj );
+      // Add a timestamp
+      queueObj.timestamp = _formattedDate();
+
+      var sqlData = _createSqlFromJson( queueObj, itemMap );
       _updateDatabase( sqlData.sql, sqlData.params );
 
       // Store full HTML 
@@ -271,21 +310,33 @@ function _addSiteIndexEvents( crawler ) {
 function create ( options={} ) {
   const crawler = SimpleCrawler( options.URL );
 
-  const crawlerDefaults = {
-    host: 'www.consumerfinance.gov',
-    interval: 3000,
-    maxConcurrency: 5,
-    filterByDomain: true,
-    parseHTMLComments: false,
-    parseScriptTags: false,
-    respectRobotsTxt: false
-  };
+  db = getDatabaseConnection()
+  .then(
+    function() {
+      console.log( 'Things went well' );
+      const crawlerDefaults = {
+        host: 'www.consumerfinance.gov',
+        interval: 3000,
+        maxConcurrency: 5,
+        filterByDomain: true,
+        parseHTMLComments: false,
+        parseScriptTags: false,
+        respectRobotsTxt: false
+      };
 
-  Object.assign( crawler, crawlerDefaults, options );
+      Object.assign( crawler, crawlerDefaults, options );
 
-  _addSiteIndexEvents( crawler );
+      _addSiteIndexEvents( crawler );
 
-  return crawler
+      return crawler
+    },
+    function() {
+      console.log( 'There was an error initializing the crawler.' );
+
+      return false;
+    }
+  )
+
 };
 
 module.exports = { create };
