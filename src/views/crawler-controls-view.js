@@ -1,6 +1,5 @@
 'use strict';
 
-
 let crawlerControlsView = {
   $start: {},
   $stop: {},

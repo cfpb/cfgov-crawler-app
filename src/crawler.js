@@ -8,6 +8,7 @@ const pageModel = require( './models/page-model.js' );
 const databaseTools = require( './dispatchers/database-tools.js' );
 const fileExists = require( './utils/file-exists' );
 const updateStats = require( './views/crawler-status-view' ).updateStats;
+const dbStatusView = require( './views/database-status-view' );
 
 
 /**
@@ -35,7 +36,12 @@ function _addPageIndexer( crawler ) {
 
     if ( contentType.indexOf( 'text/html' ) > -1 && queueItem.host === crawler.host ) {
       let pageObj = pageModel.createPageObject( queueItem, responseBuffer );
-      databaseTools.updateFromPageObj( pageObj );
+      databaseTools.updateFromPageObj( pageObj )
+      .then( function( ) {
+        dbStatusView.updateRowCount();
+      }, function( err ) {
+        console.log( err );
+      } );
     }
   } );
 }

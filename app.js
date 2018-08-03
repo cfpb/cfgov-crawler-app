@@ -2,7 +2,7 @@
 
 const createCrawler = require( './src/crawler' ).create;
 const loadSavedCrawlerQueue = require( './src/crawler' ).loadSavedQueue;
-const databaseTools = require( './src/dispatchers/database-tools' );
+const databaseModel = require( './src/models/database-model' );
 const crawlerControlsView = require( './src/views/crawler-controls-view' );
 const crawlerStatusView = require( './src/views/crawler-status-view' );
 const databaseStatusView = require( './src/views/database-status-view' );
@@ -15,13 +15,12 @@ const crawlerOptions = {
 let crawler = createCrawler( crawlerOptions );
 
 // Connect and check database before proceeding.
-databaseTools.init()
+databaseModel.init()
   .then( function() {
     loadSavedCrawlerQueue( crawler );
 
     // When the document is ready...
     $( document ).ready( function() {
-
       // ...initialize the Views
       crawlerControlsView.init();
       crawlerStatusView.init();

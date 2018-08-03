@@ -1,12 +1,16 @@
 'use strict';
 
+const dbTools = require( '../dispatchers/database-tools.js' );
+
 let databaseStatusView = {
   $dbStatus: {},
-  initialStatus: undefined,
+  $dbRows: {},
 
   init: function() {
-    this.$dbStatus = $( '#db-status-span' );
-    this.updateStatus( this.initialStatus );
+    this.$dbStatus = $( '#db-info_status-span' );
+    this.$dbRows = $( '#db-info-rows' );
+    this.updateStatus( dbTools.getConnectionStatus() );
+    this.updateRowCount();
   },
 
   updateStatus: function( status ) {
@@ -20,6 +24,16 @@ let databaseStatusView = {
       this.$dbStatus.addClass( 'error' );
       this.$dbStatus.text( 'Could not create the database table!' );
     }
+  },
+
+  updateRowCount: function() {
+    dbTools.getRows()
+    .then( function( numRows ) {
+      let rowText = numRows + ' rows found in database';
+      databaseStatusView.$dbRows.text( rowText );
+    }, function( err ) {
+      console.log( err );
+    } );
   }
 
 };
