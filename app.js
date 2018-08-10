@@ -15,7 +15,7 @@ const crawlerOptions = {
 let crawler = createCrawler( crawlerOptions );
 
 // Connect and check database before proceeding.
-databaseModel.init()
+databaseModel.init( __dirname )
   .then( function() {
     loadSavedCrawlerQueue( crawler );
 

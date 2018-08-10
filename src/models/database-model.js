@@ -1,9 +1,18 @@
 'use strict';
 
 const sqlite3 = require( 'sqlite3' ).verbose();
+const electron = require( 'electron' );
+const path = require( 'path' );
+const fs = require( 'fs' );
+// const userDir = ( electron.app || electron.remote.app ).getPath( 'userData' );
+// const dbFolderPath = path.join( userDir, '/cfgov-crawler/' );
+// const dbPath = path.join( dbFolderPath, 'cfpb-site.db');
+
 
 let databaseModel = {
   connectionStatus: undefined,
+  dbFolderPath: undefined,
+  dbPath: undefined,
 
   // Object reflecting the expected database structure
   databaseStructure: {
@@ -16,7 +25,7 @@ let databaseModel = {
 
   createConnection: function() {
     return new Promise( function( resolve, reject ) {
-      let db = new sqlite3.Database( './database/cfpb-site.db', ( err ) => {
+      let db = new sqlite3.Database( databaseModel.dbPath, ( err ) => {
         if ( !err ) {
           console.log( 'Database connected!' );
           databaseModel.connectionStatus = 'connected';
@@ -54,22 +63,41 @@ let databaseModel = {
     } );
   },
 
-  init: function() {
+  _checkDataDirectory: function( ) {
     return new Promise( function( resolve, reject ) {
-      databaseModel.createConnection()
-      .then( function( db ) {
-        databaseModel.checkTable( db )
+      fs.mkdir( databaseModel.dbFolderPath, ( err, fd ) => {
+        if ( err && err.code !== 'EEXIST') {
+          console.log( 'Error creating directory!', err );
+          reject( err );
+        } else {
+          resolve( );
+        }
+      } );
+    });
+  },
+
+  init: function( directory ) {
+    databaseModel.dbFolderPath = path.join( directory, 'database' );
+    databaseModel.dbPath = path.join( databaseModel.dbFolderPath, 'cfpb-site.db' )
+    console.log( databaseModel.dbFolderPath, databaseModel.dbPath );
+    return new Promise( function( resolve, reject ) {
+      databaseModel._checkDataDirectory( directory )
+      .then( function() {
+        databaseModel.createConnection()
         .then( function( db ) {
-          databaseModel.connection = db;
-          console.log( 'Database init() succeeded!' );
-          resolve();
+          databaseModel.checkTable( db )
+          .then( function( db ) {
+            databaseModel.connection = db;
+            console.log( 'Database init() succeeded!' );
+            resolve();
+          }, function( err ) {
+            console.log( 'Database checkTable failed!', err );
+            reject();
+          } );
         }, function( err ) {
-          console.log( 'Database checkTable failed!', err );
+          console.log( 'Database createConnection() failed!' );
           reject();
-        } );
-      }, function( err ) {
-        console.log( 'Database createConnection() failed!' );
-        reject();
+        } )
       } )
     } );
   },
