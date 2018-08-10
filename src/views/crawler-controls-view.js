@@ -1,10 +1,12 @@
 'use strict';
 
+const formatDate = require( '../utils/format-date.js' );
 
 let crawlerControlsView = {
   $start: {},
   $stop: {},
   $cover: {},
+  startTime: undefined,
 
   init: function() {
     this.$start = $( '#crawler-start' );
@@ -27,6 +29,8 @@ let crawlerControlsView = {
         updateStats( 0, 0 );
         crawler.queue = new SimpleCrawler.queue();
       }
+
+      crawlerControlsView.startTime = formatDate();
       crawler.start();
       crawlerControlsView.$cover.hide();
       crawlerControlsView.$start.prop( 'disabled', true );
@@ -44,6 +48,10 @@ let crawlerControlsView = {
       crawlerControlsView.$stop.prop( 'disabled', true );
       crawlerControlsView.$start.prop( 'disabled', false );
     } );
+  },
+
+  getStartTime: function() {
+    return this.startTime;
   }
 
 };
