@@ -79,14 +79,14 @@ let databaseModel = {
   /**
    * Get the current database stats
    */
-  getRows: function() {
+  getDatabaseStats: function() {
     return new Promise( function( resolve, reject ) {
-      let sql = 'SELECT COUNT(*) as totalRows FROM cfpb;';
+      let sql = 'SELECT url, timestamp FROM cfpb;';
       databaseModel.connection.all( sql, [], ( err, rows ) => {
         if ( err ) {
           reject( err );
         } else {
-          resolve( rows[0].totalRows );
+          resolve( rows );
         }
       } );
     } );

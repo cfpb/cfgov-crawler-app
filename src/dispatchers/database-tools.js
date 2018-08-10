@@ -4,9 +4,9 @@ let databaseModel = require( '../models/database-model.js' );
 
 let databaseTools = {
 
-  getRows: function() {
+  getDatabaseStats: function() {
     return new Promise( function( resolve, reject ) {
-      databaseModel.getRows()
+      databaseModel.getDatabaseStats()
       .then( function( rows ) {
         resolve( rows )
         }, function() {

@@ -38,7 +38,15 @@ function _addPageIndexer( crawler ) {
       let pageObj = pageModel.createPageObject( queueItem, responseBuffer );
       databaseTools.updateFromPageObj( pageObj )
       .then( function( ) {
-        dbStatusView.updateRowCount();
+        dbStatusView.updateDatabaseStats();
+        crawler.queue.countItems( { fetched: true }, function( err, count ) {
+          crawler.queue.getLength( function(err, length) {
+            if (err) {
+                throw err;
+            }
+            updateStats( count, length );
+          });
+        });
       }, function( err ) {
         console.log( err );
       } );
