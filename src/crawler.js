@@ -77,12 +77,7 @@ function _addFetchErrorHandler( crawler ) {
 
 function _addCompleteHandler( crawler ) {
   crawler.on( 'complete', function() {
-    db.close( ( err ) => {
-      if ( err ) {
-        console.error( err.message );
-      }
-      console.log( 'Closed the database connection.' );
-    });
+    databaseTools.closeDatabase();
 
     console.log( 'Index successfully completed.' );
   } );
@@ -94,9 +89,17 @@ function loadSavedQueue( crawler ) {
   if ( fileExists( './mysavedqueue.json' ) ) {
     crawler.queue.defrost( './mysavedqueue.json', () => {
       crawler.queue.countItems( { fetched: true }, function( err, count ) {
-        if ( count > 0 ) {
+
+        // Saved the crawler queue
+        if ( count > 0 && count > crawler.queueCheck ) {
           crawler.queueCheck = count + 100;
+          console.log( 'Time to freeze the queue ( fetched = ' + count + ', queueCheck = ' + crawler.queueCheck );
+          crawler.queue.freeze( 'mysavedqueue.json', () => {
+          } );
+          crawler.queueCheck += 100;
+          console.log( 'New queueCheck: ' + crawler.queueCheck );
         }
+
         crawler.queue.getLength(function(err, length) {
           if (err) {
               throw err;

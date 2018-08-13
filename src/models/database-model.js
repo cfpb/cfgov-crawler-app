@@ -13,6 +13,8 @@ let databaseModel = {
   connectionStatus: undefined,
   dbFolderPath: undefined,
   dbPath: undefined,
+  connection: undefined,
+
 
   // Object reflecting the expected database structure
   databaseStructure: {
@@ -21,6 +23,15 @@ let databaseModel = {
     hasWordPressContent: 'text', contentLinks: 'text', contentImages: 'text',
     metaTags: 'text', title: 'text', pageHash: 'text', sitemap: 'text',
     timestamp: 'text'
+  },
+
+  closeConnection: function() {
+    databaseModel.connection.close( ( err ) => {
+      if ( err ) {
+        console.error( err.message );
+      }
+      console.log( 'Closed the database connection.' );
+    });
   },
 
   createConnection: function() {
@@ -102,8 +113,6 @@ let databaseModel = {
     } );
   },
 
-  connection: undefined,
-
   /**
    * Get the current database stats
    */
@@ -129,7 +138,6 @@ let databaseModel = {
         if ( err ) {
           reject( err );
         } else {
-          console.log( 'Updated DB: ' + params[6] );
           resolve( rows );
         }
       } );
@@ -156,8 +164,6 @@ let databaseModel = {
       }
       params.push( value );
     } );
-
-    // console.log( sql, params );
 
     return {
       sql: sql,

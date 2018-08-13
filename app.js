@@ -17,10 +17,11 @@ let crawler = createCrawler( crawlerOptions );
 // Connect and check database before proceeding.
 databaseModel.init( __dirname )
   .then( function() {
-    loadSavedCrawlerQueue( crawler );
-
     // When the document is ready...
     $( document ).ready( function() {
+      // Check and load the saved queue
+      loadSavedCrawlerQueue( crawler );
+
       // ...initialize the Views
       crawlerControlsView.init();
       crawlerStatusView.init();

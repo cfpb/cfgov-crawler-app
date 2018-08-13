@@ -15,9 +15,6 @@ let crawlerControlsView = {
 
     // Activate the start button
     this.$start.prop( 'disabled', false );
-
-    console.log( $( '#crawler-start' ) );
-  
     this.startCrawlerListener();
     this.stopCrawlerListener();
   },
