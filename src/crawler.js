@@ -89,9 +89,17 @@ function loadSavedQueue( crawler ) {
   if ( fileExists( './mysavedqueue.json' ) ) {
     crawler.queue.defrost( './mysavedqueue.json', () => {
       crawler.queue.countItems( { fetched: true }, function( err, count ) {
-        if ( count > 0 ) {
+
+        // Saved the crawler queue
+        if ( count > 0 && count > crawler.queueCheck ) {
           crawler.queueCheck = count + 100;
+          console.log( 'Time to freeze the queue ( fetched = ' + count + ', queueCheck = ' + crawler.queueCheck );
+          crawler.queue.freeze( 'mysavedqueue.json', () => {
+          } );
+          crawler.queueCheck += 100;
+          console.log( 'New queueCheck: ' + crawler.queueCheck );
         }
+
         crawler.queue.getLength(function(err, length) {
           if (err) {
               throw err;
