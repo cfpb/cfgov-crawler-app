@@ -77,12 +77,7 @@ function _addFetchErrorHandler( crawler ) {
 
 function _addCompleteHandler( crawler ) {
   crawler.on( 'complete', function() {
-    db.close( ( err ) => {
-      if ( err ) {
-        console.error( err.message );
-      }
-      console.log( 'Closed the database connection.' );
-    });
+    databaseTools.closeDatabase();
 
     console.log( 'Index successfully completed.' );
   } );

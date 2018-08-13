@@ -4,6 +4,10 @@ let databaseModel = require( '../models/database-model.js' );
 
 let databaseTools = {
 
+  closeDatabase: function() {
+    databaseModel.closeConnection();
+  },
+
   getDatabaseStats: function() {
     return new Promise( function( resolve, reject ) {
       databaseModel.getDatabaseStats()
