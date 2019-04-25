@@ -29,6 +29,7 @@ function _init( crawler ) {
  * @param {object} siteCrawler
  */
 function _addPageIndexer( crawler ) {
+  console.log( 'added!' );
   crawler.on( 'fetchcomplete', function( queueItem, responseBuffer, response ) {
     const stateData = queueItem.stateData;
     const contentType = ( stateData && stateData.contentType ) || '';
@@ -128,7 +129,7 @@ function create ( options={} ) {
   const crawlerDefaults = {
     URL: 'https://www.consumerfinance.gov/',
     host: 'www.consumerfinance.gov',
-    interval: 3000,
+    interval: 500,
     maxConcurrency: 5,
     filterByDomain: true,
     parseHTMLComments: false,

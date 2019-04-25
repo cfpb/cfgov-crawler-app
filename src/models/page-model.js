@@ -6,6 +6,17 @@ const sitemapCheck = require( '../utils/sitemap-check' );
 const formatDate = require( '../utils/format-date' );
 
 let pageModel = {
+  // TEMP - parse page for USCFPB_*, but not USCFPB_91
+
+  _findBlogSignup: function ( responseBuffer ) {
+    const pageHMTL = responseBuffer.toString();
+    return pageHMTL.match( /^(?!.*USCFPB_91).*USCFPB_.*$/ ) !== null;
+  },
+
+  // TEMP - find instances of the cf-icon class
+  _findIconClass: function( $ ) {
+    return $( '.cf-icon' ).length > 0;
+  },
 
   // Parse page for links in the content area
   _findContentLinks: function( $ ) {
@@ -14,11 +25,14 @@ let pageModel = {
     $body.find( '.o-header' ).remove();
     $body.find( '.o-footer' ).remove();
     $body.find( 'a' ).each( ( i, ele ) => {
-      var href = $( ele ).attr( 'href' );
-      if ( typeof( href ) !== 'undefined' ) {
-        links.push( href );
-      } ;
+      let obj = new Object();
+      obj.href = $( ele ).attr( 'href' );
+      obj.text = $( ele ).text().trim();
+
+      links.push( obj );
+
     } );
+    console.log( links );
 
     return links;
   },
@@ -116,6 +130,12 @@ let pageModel = {
     let $ = cheerio.load( responseBuffer );
 
     if ( contentType.indexOf( 'text/html' ) > -1 && queueItem.host === crawler.host ) {
+
+      // TEMP - Find specific blog posts
+      pageObj.blogSignup = this._findBlogSignup( responseBuffer );
+
+      // TEMP - Find cf-icon class
+      pageObj.iconClass = this._findIconClass( $ );
 
       // Find Atomic Components
       pageObj.components = this._findAtomicComponents( url, responseBuffer );

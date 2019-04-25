@@ -22,7 +22,7 @@ let databaseModel = {
     protocol: 'text', uriPath: 'text', stateData: 'text', components: 'text',
     hasWordPressContent: 'text', contentLinks: 'text', contentImages: 'text',
     metaTags: 'text', title: 'text', pageHash: 'text', sitemap: 'text',
-    timestamp: 'text'
+    timestamp: 'text', iconClass: 'text', blogSignup: 'text'
   },
 
   closeConnection: function() {

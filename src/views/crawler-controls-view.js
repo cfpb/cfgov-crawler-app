@@ -1,6 +1,8 @@
 'use strict';
 
 const formatDate = require( '../utils/format-date.js' );
+const fs = require( 'fs' );
+const crawlerStatusView = require( '../views/crawler-status-view.js' );
 
 let crawlerControlsView = {
   $start: {},
@@ -23,7 +25,7 @@ let crawlerControlsView = {
     this.$start.click( function() {
       if ( crawlerOptions.deleteQueueFile === true ) {
         fs.renameSync( 'mysavedqueue.json', 'oldsavedqueue.json' );
-        updateStats( 0, 0 );
+        crawlerStatusView.updateStats( 0, 0 );
         crawler.queue = new SimpleCrawler.queue();
       }
 
