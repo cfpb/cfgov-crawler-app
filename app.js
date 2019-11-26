@@ -8,7 +8,7 @@ const crawlerStatusView = require( './src/views/crawler-status-view' );
 const databaseStatusView = require( './src/views/database-status-view' );
 
 const crawlerOptions = {
-  URL: 'https://www.consumerfinance.gov/',
+  URL: 'https://dev3.demo.cfpb.gov/',
   deleteQueueFile: false
 }
 
@@ -85,12 +85,12 @@ databaseModel.init( __dirname )
 
 // FOR DEVELOPMENT ONLY: 
 // Create a queue (for development purposes)
-// crawler.queueURL( 'https://www.consumerfinance.gov/es/', undefined, true);
-// crawler.queueURL( 'https://www.consumerfinance.gov/paying-for-college/', undefined, true );
-// crawler.queueURL( 'https://www.consumerfinance.gov/paying-for-college/choose-a-student-loan/', undefined, true );
-// crawler.queueURL( 'https://www.consumerfinance.gov/blog/', undefined, true);
-// crawler.queueURL( 'https://www.consumerfinance.gov/data-research/', undefined, true);
-// crawler.queueURL( 'https://www.consumerfinance.gov/ask-cfpb/', undefined, true);
+// crawler.queueURL( 'https://dev3.demo.cfpb.gov/es/', undefined, true);
+// crawler.queueURL( 'https://dev3.demo.cfpb.gov/paying-for-college/', undefined, true );
+// crawler.queueURL( 'https://dev3.demo.cfpb.gov/paying-for-college/choose-a-student-loan/', undefined, true );
+// crawler.queueURL( 'https://dev3.demo.cfpb.gov/blog/', undefined, true);
+// crawler.queueURL( 'https://dev3.demo.cfpb.gov/data-research/', undefined, true);
+// crawler.queueURL( 'https://dev3.demo.cfpb.gov/ask-cfpb/', undefined, true);
 
 
 

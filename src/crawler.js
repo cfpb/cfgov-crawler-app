@@ -126,8 +126,8 @@ function loadSavedQueue( crawler ) {
 function create ( options={} ) {
   const crawler = SimpleCrawler( options.URL );
   const crawlerDefaults = {
-    URL: 'https://www.consumerfinance.gov/',
-    host: 'www.consumerfinance.gov',
+    URL: 'https://dev3.demo.cfpb.gov/',
+    host: 'dev3.demo.cfpb.gov',
     interval: 3000,
     maxConcurrency: 5,
     filterByDomain: true,
