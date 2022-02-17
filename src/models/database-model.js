@@ -20,7 +20,7 @@ let databaseModel = {
   databaseStructure: {
     url: 'text primary key', host: 'text', path: 'text', port: 'text',
     protocol: 'text', uriPath: 'text', stateData: 'text', components: 'text',
-    hasWordPressContent: 'text', contentLinks: 'text', contentImages: 'text',
+    hasWordPressContent: 'text', content: 'text', contentLinks: 'text', contentImages: 'text',
     metaTags: 'text', title: 'text', pageHash: 'text', sitemap: 'text',
     timestamp: 'text', iconClass: 'text', blogSignup: 'text'
   },

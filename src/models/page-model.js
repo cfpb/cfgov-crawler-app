@@ -18,6 +18,14 @@ let pageModel = {
     return $( '.cf-icon' ).length > 0;
   },
 
+  // Parse page for content
+  _findContent: function( $ ) {
+
+    let text =  $( 'body' ).text().replace(/\s+/g,' ').trim();
+
+    return text;
+  },
+
   // Parse page for links in the content area
   _findContentLinks: function( $ ) {
     var links = [];
@@ -143,6 +151,9 @@ let pageModel = {
       // Find Wordpress Content
       pageObj.hasWordPressContent =
         this._hasWordPressContent( url, responseBuffer );
+
+      // Find all content
+      pageObj.content = this._findContent( $ );
 
       // Find all links in content
       pageObj.contentLinks = this._findContentLinks( $ );

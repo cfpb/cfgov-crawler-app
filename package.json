@@ -11,23 +11,23 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "cf-core": "^4.6.3",
+    "cf-core": "^4.10.0",
     "cf-notifications": "^2.0.2",
-    "cheerio": "1.0.0-rc.2",
-    "electron": "^2.0.5",
+    "cheerio": "^1.0.0-rc.10",
+    "electron": "^2.0.18",
     "github": "13.1.0",
     "googleapis": "25.0.0",
-    "gulp": "^4.0.0",
+    "gulp": "^4.0.2",
     "gulp-less": "4.0.0",
     "gulp-watch": "^5.0.1",
     "is-url": "1.2.2",
-    "jquery": "3.3.1",
+    "jquery": "^3.6.0",
     "json-beautify": "1.0.1",
     "md5": "2.2.1",
     "simplecrawler": "1.1.6",
-    "sqlite3": "^4.0.2"
+    "sqlite3": "^4.2.0"
   },
   "devDependencies": {
-    "electron-builder": "^20.26.0"
+    "electron-builder": "^20.44.4"
   }
 }

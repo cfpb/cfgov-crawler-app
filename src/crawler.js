@@ -129,8 +129,8 @@ function create ( options={} ) {
   const crawlerDefaults = {
     URL: 'https://www.consumerfinance.gov/',
     host: 'www.consumerfinance.gov',
-    interval: 500,
-    maxConcurrency: 5,
+    interval: 200,
+    maxConcurrency: 25,
     filterByDomain: true,
     parseHTMLComments: false,
     parseScriptTags: false,
