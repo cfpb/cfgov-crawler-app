@@ -23,6 +23,14 @@ let pageModel = {
     return links;
   },
 
+   // Parse page for content
+  _findContent: function( $ ) {
+
+    let text =  $( 'body' ).text().replace(/\s+/g,' ').trim();
+
+    return text;
+  },
+
   // Parse page for images in the content area
   _findContentImages: function( $ ) {
     var links = [];
@@ -144,6 +152,9 @@ let pageModel = {
 
       // Add a timestamp
       pageObj.timestamp = formatDate();
+
+      // Find all content
+      pageObj.content = this._findContent( $ );
 
       return pageObj;
     }
