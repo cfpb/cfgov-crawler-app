@@ -26,3 +26,82 @@ Here are some of the high points of the `database/cfpb-site.db` database. (Not e
 - __contentImages__ - An array of all images found in the content (outside the header/footer) of the page
 
 Other columns might have been added automatically from what `simplecrawler` records, or they may still be under development.
+
+
+## Adding custom search parameters
+
+A primary use of this app is to create custom crawls and view the results. The steps are pretty easy:
+
+### 1. Add the database fields that will store the data to `database-model.js`.
+
+The database will need to know about additional columns when it is created, so we add this to the model in `src/models/database-model.js`. In `databaseModel.databaseStructure`, we simply add parameters. For instance, say we want to add `foo` as a text field. We can add it to the end of this object as such:
+
+```
+  databaseStructure: {
+    url: 'text primary key', host: 'text', path: 'text', port: 'text',
+    protocol: 'text', uriPath: 'text', stateData: 'text', components: 'text',
+    hasWordPressContent: 'text', contentLinks: 'text', contentImages: 'text',
+    metaTags: 'text', title: 'text', pageHash: 'text', sitemap: 'text',
+    timestamp: 'text', foo: 'text'
+  },
+```
+
+### 2. Add a handler method to `page-model.js`
+
+Now we need to tell the app what to put into that data field. We do this by adding a private method to `pageModel` in `src/models/page-model.js`. We can use the variable `responseBuffer` to get the content of the HTTP response to our request (turning it into a string with the `toString()` method:
+
+```
+let pageModel = {
+  ...
+  
+  // Parse page for foo
+  _findFoo: function( responseBuffer ) {
+    const pageHMTL = responseBuffer.toString();
+    return responseBuffer.indexOf( 'wp-content' ) > -1;
+  },
+  
+  ...
+```
+
+Unfortunately, parsing HTML as a string instead of a DOM object or the like is not ideal, so we use the `cheerio` pacakage to enable some jQuery-like functions and methods. In this case, `$` represents a cheerio Object representation of the HTML response. For instance:
+
+```
+let pageModel = {
+  ...
+  
+  // Parse page for foo
+  _findFoo: function( $ ) {
+    return $( 'body' ).find( '.foo' ).text();
+  },
+  
+  ...
+```
+
+More information about cheerio can be found at https://cheerio.js.org/.
+
+### 3. Add your handler method to the `createPageObject` Object in `page-model.js`
+
+Now we need `createPageObject` to call your method. In this step, it's important that you assign the returned value of your method to the same column name that you used in the `database-model.js` code. This will assure that it gets into the database. So, if we used `foo` in the `databaseStructure` property, we need to add `foo` to the `pageObj` Object with the data we want. For example:
+
+```
+      // Find foo
+      pageObj.foo = this._findFoo( responseBuffer );
+```
+
+or, when using cheerio:
+
+```
+      // Find foo
+      pageObj.foo = this._findFoo( $ );
+```
+
+### 4. Run the app!
+
+Now you can run the app. You can test that it is working by querying the database to see if your data is being populated as it runs.
+
+
+
+### Additional notes
+
+1. Most of the time, text is the only data type we really need for these simple crawls, but other types of values can be useful. Consult sqlite documentation for more information on types.
+
