@@ -34,7 +34,7 @@ A primary use of this app is to create custom crawls and view the results. The s
 
 ### 1. Add the database fields that will store the data to `database-model.js`.
 
-The database will need to know about additional columns when it is created, so we add this to the model in `src/models/database-model.js`. In `databaseModel.databaseStructure`, we simply add parameters. For instance, say we want to add `foo` as a text field. We can add it to the end of this object as such:
+The database will need to know about additional columns when it is created, so we add this to the model in `src/models/database-model.js`. In `databaseModel.databaseStructure`, we simply add parameters. For instance, say we want to add a new text column `foo` that indicates whether the HTML class `"foo"` was found in the page body. We can add it to the end of the database schema object as such:
 
 ```
   databaseStructure: {
@@ -48,28 +48,28 @@ The database will need to know about additional columns when it is created, so w
 
 ### 2. Add a handler method to `page-model.js`
 
-Now we need to tell the app what to put into that data field. We do this by adding a private method to `pageModel` in `src/models/page-model.js`. We can use the variable `responseBuffer` to get the content of the HTTP response to our request (turning it into a string with the `toString()` method:
+Now we need to tell the app what to store into that new database column. We do this by adding a private method to `pageModel` in `src/models/page-model.js`. We can use the variable `responseBuffer` to get the content of the HTTP response to our request (turning it into a string with the `toString()` method:
 
 ```
 let pageModel = {
   ...
   
-  // Parse page for foo
+  // Parse page for classname "foo"
   _findFoo: function( responseBuffer ) {
     const pageHMTL = responseBuffer.toString();
-    return responseBuffer.indexOf( 'wp-content' ) > -1;
+    return responseBuffer.indexOf( 'foo' ) > -1;
   },
   
   ...
 ```
 
-Unfortunately, parsing HTML as a string instead of a DOM object or the like is not ideal, so we use the `cheerio` pacakage to enable some jQuery-like functions and methods. In this case, `$` represents a cheerio Object representation of the HTML response. For instance:
+Unfortunately, parsing HTML as a string instead of a DOM object or the like is not ideal, so we can alternatively use the `cheerio` pacakage to enable some jQuery-like functions and methods. In this case, `$` represents a cheerio Object representation of the HTML response. For instance:
 
 ```
 let pageModel = {
   ...
   
-  // Parse page for foo
+  // Parse page for classname "foo"
   _findFoo: function( $ ) {
     return $( 'body' ).find( '.foo' ).text();
   },
